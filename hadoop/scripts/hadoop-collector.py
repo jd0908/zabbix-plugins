@@ -14,6 +14,7 @@ SERVICE_UP = 1
 SERVICE_DOWN = 0
 PTRN_TAG = re.compile('<[^>]+>')
 
+
 class Job(object):
 
     def __init__(self, args):
@@ -41,14 +42,17 @@ class Job(object):
 
     def collect_namenode(self):
 
-        content = self.request('http://%s:%d/dfshealth.jsp' % (self.args.namenode_host, self.args.namenode_port))
+        content = self.request('http://%s:%d/dfshealth.jsp' %
+                               (self.args.namenode_host, self.args.namenode_port))
         result = {}
 
-        mo = re.search('([0-9]+) files and directories, ([0-9]+) blocks', content)
+        mo = re.search(
+            '([0-9]+) files and directories, ([0-9]+) blocks', content)
         result['file_count'] = mo.group(1)
         result['block_count'] = mo.group(2)
 
-        mo = re.search('Heap Size is ([0-9.]+ [KMGTP]?B) / ([0-9.]+ [KMGTP]?B)', content)
+        mo = re.search(
+            'Heap Size is ([0-9.]+ [KMGTP]?B) / ([0-9.]+ [KMGTP]?B)', content)
         result['heap_used'] = self.regulate_size(mo.group(1))
         result['heap_total'] = self.regulate_size(mo.group(2))
 
@@ -66,7 +70,8 @@ class Job(object):
             except ValueError:
                 pass
 
-        result['dfs_capacity'] = self.regulate_size(dfsmap['Configured Capacity'])
+        result['dfs_capacity'] = self.regulate_size(
+            dfsmap['Configured Capacity'])
         result['dfs_used'] = self.regulate_size(dfsmap['DFS Used'])
         result['dfs_used_other'] = self.regulate_size(dfsmap['Non DFS Used'])
         result['dfs_remaining'] = self.regulate_size(dfsmap['DFS Remaining'])
@@ -79,10 +84,12 @@ class Job(object):
 
     def collect_jobtracker(self):
 
-        content = self.request('http://%s:%d/cluster' % (self.args.jobtracker_host, self.args.jobtracker_port))
+        content = self.request(
+            'http://%s:%d/cluster' % (self.args.jobtracker_host, self.args.jobtracker_port))
         result = {}
 
-        mo = re.search('Heap Size is ([0-9.]+ [KMGTP]?B)/([0-9.]+ [KMGTP]?B)', content)
+        mo = re.search(
+            'Heap Size is ([0-9.]+ [KMGTP]?B)/([0-9.]+ [KMGTP]?B)', content)
         result['heap_used'] = self.regulate_size(mo.group(1))
         result['heap_total'] = self.regulate_size(mo.group(2))
 
@@ -98,7 +105,8 @@ class Job(object):
         jtmap = {}
         for mo_head in iter_head:
             mo_body = iter_body.next()
-            jtmap[mo_head.group(1).strip()] = PTRN_TAG.sub('', mo_body.group(1)).strip()
+            jtmap[mo_head.group(1).strip()] = PTRN_TAG.sub(
+                '', mo_body.group(1)).strip()
 
         result['map_running'] = jtmap['Running Map Tasks']
         result['map_occupied'] = jtmap['Occupied Map Slots']
@@ -147,7 +155,8 @@ class Job(object):
 
     def collect_tasktracker(self):
 
-        content = self.request('http://%s:%d/cluster?type=active' % (self.args.jobtracker_host, self.args.jobtracker_port))
+        content = self.request('http://%s:%d/cluster?type=active' %
+                               (self.args.jobtracker_host, self.args.jobtracker_port))
 
         lines = iter(content.split('\n'))
         jthead = None
@@ -175,11 +184,12 @@ class Job(object):
         for mo_head in iter_head:
             mo_body = iter_body.next()
             jtmap[PTRN_TAG.sub('', mo_head.group(1)).strip()] = \
-                    PTRN_TAG.sub('', mo_body.group(1)).strip()
+                PTRN_TAG.sub('', mo_body.group(1)).strip()
 
         result = {}
         result['task_running'] = jtmap['# running tasks']
-        result['task_capacity'] = int(jtmap['Max Map Tasks']) + int(jtmap['Max Reduce Tasks'])
+        result['task_capacity'] = int(
+            jtmap['Max Map Tasks']) + int(jtmap['Max Reduce Tasks'])
         result['task_failed'] = jtmap['Task Failures']
         result['task_total'] = jtmap['Total Tasks Since Start']
         result['task_succeeded'] = jtmap['Succeeded Tasks Since Start']
@@ -188,7 +198,8 @@ class Job(object):
 
     def collect_datanode(self):
 
-        content = self.request('http://%s:%d/dfsnodelist.jsp?whatNodes=LIVE' % (self.args.namenode_host, self.args.namenode_port))
+        content = self.request('http://%s:%d/dfsnodelist.jsp?whatNodes=LIVE' %
+                               (self.args.namenode_host, self.args.namenode_port))
 
         lines = iter(content.split('\n'))
         for line in lines:
@@ -223,7 +234,8 @@ class Job(object):
                 jtmap[k] = v
 
         result = {}
-        result['dfs_capacity'] = self.regulate_size(jtmap['Configured Capacity'])
+        result['dfs_capacity'] = self.regulate_size(
+            jtmap['Configured Capacity'])
         result['dfs_used'] = self.regulate_size(jtmap['Used'])
         result['dfs_used_other'] = self.regulate_size(jtmap['Non DFS Used'])
         result['dfs_remaining'] = self.regulate_size(jtmap['Remaining'])
@@ -280,7 +292,8 @@ class Job(object):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Hadoop metrics collector for Zabbix.')
+    parser = argparse.ArgumentParser(
+        description='Hadoop metrics collector for Zabbix.')
 
     parser.add_argument('-t', '--type', required=True, help='collector type',
                         choices=['namenode', 'datanode', 'jobtracker', 'tasktracker'])
@@ -291,8 +304,10 @@ if __name__ == '__main__':
     parser.add_argument('--jobtracker-host', default='127.0.0.1')
     parser.add_argument('--jobtracker-port', type=int, default=50030)
 
-    parser.add_argument('-z', '--zabbix-home', default='/usr/local/zabbix-agent-ops')
-    parser.add_argument('-s', '--host', required=True, help='hostname recognized by zabbix')
+    parser.add_argument(
+        '-z', '--zabbix-home', default='/usr/local/zabbix-agent-ops')
+    parser.add_argument(
+        '-s', '--host', required=True, help='hostname recognized by zabbix')
 
     args = parser.parse_args()
 

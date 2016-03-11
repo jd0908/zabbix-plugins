@@ -4,15 +4,18 @@ results that can then be used by Zabbix.
 https://github.com/jasonmcintosh/rabbitmq-zabbix
 '''
 import json
+import logging
 import optparse
+import os
 import socket
-import urllib2
 import subprocess
 import tempfile
-import os
-import logging
+import urllib2
 
-logging.basicConfig(filename='/var/log/zabbix/rabbitmq_zabbix.log', level=logging.WARNING, format='%(asctime)s %(levelname)s: %(message)s')
+
+logging.basicConfig(filename='/var/log/zabbix/rabbitmq_zabbix.log',
+                    level=logging.WARNING, format='%(asctime)s %(levelname)s: %(message)s')
+
 
 class RabbitMQAPI(object):
     '''Class for RabbitMQ Management API'''
@@ -29,7 +32,8 @@ class RabbitMQAPI(object):
 
     def call_api(self, path):
         '''Call the REST API and convert the results into JSON.'''
-        url = '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host_name, self.port, path)
+        url = '{0}://{1}:{2}/api/{3}'.format(
+            self.protocol, self.host_name, self.port, path)
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, self.user_name, self.password)
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
@@ -45,7 +49,8 @@ class RabbitMQAPI(object):
         if not filters:
             filters = [{}]
         for queue in self.call_api('queues'):
-            logging.debug("Discovered queue " + queue['name'] + ", checking to see if it's filtered...")
+            logging.debug(
+                "Discovered queue " + queue['name'] + ", checking to see if it's filtered...")
             for _filter in filters:
                 check = [(x, y) for x, y in queue.items() if x in _filter]
                 shared_items = set(_filter.items()).intersection(check)
@@ -53,7 +58,8 @@ class RabbitMQAPI(object):
                     element = {'{#VHOSTNAME}': queue['vhost'],
                                '{#QUEUENAME}': queue['name']}
                     queues.append(element)
-                    logging.debug('Discovered queue '+queue['vhost']+'/'+queue['name'])
+                    logging.debug(
+                        'Discovered queue ' + queue['vhost'] + '/' + queue['name'])
                     break
         return queues
 
@@ -67,7 +73,7 @@ class RabbitMQAPI(object):
             element = {'{#NODENAME}': name,
                        '{#NODETYPE}': node['type']}
             nodes.append(element)
-            logging.debug('Discovered nodes '+name+'/'+node['type'])
+            logging.debug('Discovered nodes ' + name + '/' + node['type'])
         return nodes
 
     def check_queue(self, filters=None):
@@ -102,14 +108,15 @@ class RabbitMQAPI(object):
             key = '"rabbitmq.queues[{0},queue_{1},{2}]"'
             key = key.format(queue['vhost'], item, queue['name'])
             value = queue.get(item, 0)
-            logging.debug("SENDER_DATA: - %s %s" % (key,value))
+            logging.debug("SENDER_DATA: - %s %s" % (key, value))
             tmpfile.write("- %s %s\n" % (key, value))
-        ##  This is a non standard bit of information added after the standard items
+        # This is a non standard bit of information added after the standard
+        # items
         for item in ['deliver_get', 'publish']:
             key = '"rabbitmq.queues[{0},queue_message_stats_{1},{2}]"'
             key = key.format(queue['vhost'], item, queue['name'])
             value = queue.get('message_stats', {}).get(item, 0)
-            logging.debug("SENDER_DATA: - %s %s" % (key,value))
+            logging.debug("SENDER_DATA: - %s %s" % (key, value))
             tmpfile.write("- %s %s\n" % (key, value))
 
     def _send_data(self, tmpfile):
@@ -119,8 +126,8 @@ class RabbitMQAPI(object):
             args = args + " -s " + self.senderhostname
         return_code = 0
         process = subprocess.Popen(args.format(self.conf, tmpfile.name),
-                                           shell=True, stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
+                                   shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         out, err = process.communicate()
         logging.debug("Finished sending data")
         return_code = process.wait()
@@ -140,11 +147,11 @@ class RabbitMQAPI(object):
     def check_server(self, item, node_name):
         '''First, check the overview specific items'''
         if item == 'message_stats_deliver_get':
-          return self.call_api('overview').get('message_stats', {}).get('deliver_get',0)
+            return self.call_api('overview').get('message_stats', {}).get('deliver_get', 0)
         elif item == 'message_stats_publish':
-          return self.call_api('overview').get('message_stats', {}).get('publish',0)
+            return self.call_api('overview').get('message_stats', {}).get('publish', 0)
         elif item == 'rabbitmq_version':
-          return self.call_api('overview').get('rabbitmq_version', 'None')
+            return self.call_api('overview').get('rabbitmq_version', 'None')
         '''Return the value for a specific item in a node's details.'''
         node_name = node_name.split('.')[0]
         for nodeData in self.call_api('nodes'):
@@ -172,9 +179,11 @@ def main():
                       help='Type of check')
     parser.add_option('--metric', help='Which metric to evaluate', default='')
     parser.add_option('--filters', help='Filter used queues (see README)')
-    parser.add_option('--node', help='Which node to check (valid for --check=server)')
+    parser.add_option(
+        '--node', help='Which node to check (valid for --check=server)')
     parser.add_option('--conf', default='/etc/zabbix/zabbix_agentd.conf')
-    parser.add_option('--senderhostname', default='', help='Allows including a sender parameter on calls to zabbix_sender')
+    parser.add_option('--senderhostname', default='',
+                      help='Allows including a sender parameter on calls to zabbix_sender')
     (options, args) = parser.parse_args()
     if not options.check:
         parser.error('At least one check should be specified')

@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import pyzabbix
 import re
+
+import pyzabbix
+
 
 def main(args):
 
@@ -13,14 +15,15 @@ def main(args):
     for host in args.host:
         process(zapi, host)
 
+
 def process(zapi, host):
 
     print host
 
-    metrics = { # value_type, units, is_average
-        'rkB/s' : (3, 'B', False),
-        'wkB/s' : (3, 'B', False),
-        '%util' : (0, '', True)
+    metrics = {  # value_type, units, is_average
+        'rkB/s': (3, 'B', False),
+        'wkB/s': (3, 'B', False),
+        '%util': (0, '', True)
     }
     process_metrics(zapi, host=host,
                     application='iostat',
@@ -42,12 +45,14 @@ def process(zapi, host):
                     name_format='All Network %s',
                     key_format='net.if.%s[all]')
 
+
 def process_metrics(zapi, host, application, search_key, key_pattern, metrics, name_format, key_format):
 
     host = zapi.host.get(filter={'host': host})
     hostid = host[0]['hostid']
 
-    application = zapi.application.get(hostids=hostid, filter={'name': application})
+    application = zapi.application.get(
+        hostids=hostid, filter={'name': application})
     applicationid = application[0]['applicationid']
 
     items = zapi.item.get(hostids=hostid,
@@ -64,7 +69,8 @@ def process_metrics(zapi, host, application, search_key, key_pattern, metrics, n
         if device_name not in devices:
             devices[device_name] = {}
         device_info = devices[device_name]
-        device_info[mo.group('metric')] = (item['itemid'], item['key_'], item['params'])
+        device_info[mo.group('metric')] = (
+            item['itemid'], item['key_'], item['params'])
 
     for metric, metric_info in metrics.iteritems():
         print metric
@@ -99,7 +105,8 @@ def process_metrics(zapi, host, application, search_key, key_pattern, metrics, n
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-z', '--zabbix-server', required=True, help='e.g. zabbix.domain.com:8080')
+    parser.add_argument(
+        '-z', '--zabbix-server', required=True, help='e.g. zabbix.domain.com:8080')
     parser.add_argument('-u', '--zabbix-username', required=True)
     parser.add_argument('-p', '--zabbix-password', required=True)
     parser.add_argument('-s', '--host', action='append', required=True)
