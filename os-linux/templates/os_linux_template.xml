@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>3.0</version>
-    <date>2016-07-20T13:56:35Z</date>
+    <date>2016-08-04T08:38:52Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -2332,8 +2332,8 @@
             <dependencies/>
         </trigger>
         <trigger>
-            <expression>{Template OS Linux:facter[kernelrelease].change(0)}&lt;0</expression>
-            <name>Kernel version is changed</name>
+            <expression>{Template OS Linux:facter[kernelrelease].diff(0)}&gt;0</expression>
+            <name>Kernel version is changed on {HOST.NAME}</name>
             <url/>
             <status>0</status>
             <priority>1</priority>
